@@ -214,7 +214,7 @@ async def _store_upload(upload: UploadFile, destination: Path, limit: int) -> tu
             if size > limit:
                 handle.close()
                 destination.unlink(missing_ok=True)
-                raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "file exceeds the upload limit")
+                raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "file exceeds the upload limit")
             digest.update(chunk)
             handle.write(chunk)
     return digest.hexdigest(), size
@@ -232,7 +232,7 @@ async def create_analysis(
     try:
         body = AnalysisRequest.model_validate(json.loads(parameters))
     except (json.JSONDecodeError, ValidationError) as error:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(error)) from error
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
     safe_name = Path(file.filename or "upload").name[:255]
     extension = Path(safe_name).suffix.lower()
     if extension not in ALLOWED_EXTENSIONS:
