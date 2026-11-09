@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: #131312;
+  color: #f0efec;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.field {
+  @apply w-full rounded-md border border-surface-line bg-surface-sunken px-3 py-2 text-sm text-ink outline-none focus:border-accent;
+}
+
+.label {
+  @apply mb-1 block text-xs font-medium text-ink-soft;
+}
+
+.panel {
+  @apply rounded-lg border border-surface-line bg-surface p-4;
+}
+
+.button {
+  @apply rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.button-quiet {
+  @apply rounded-md border border-surface-line px-3 py-1.5 text-sm text-ink-soft transition hover:border-ink-muted hover:text-ink;
+}

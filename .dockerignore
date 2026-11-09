@@ -1,0 +1,12 @@
+.git
+.github
+.env
+.venv
+venv
+data
+docs
+flight_datasets
+frontend/node_modules
+frontend/dist
+**/__pycache__
+**/.pytest_cache

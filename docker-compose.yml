@@ -1,0 +1,79 @@
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: docker/backend.Dockerfile
+    args:
+      INSTALL_ML: ${AEROLOCATE_INSTALL_ML:-true}
+  env_file: .env
+  environment:
+    AEROLOCATE_DATABASE_URL: postgresql+psycopg2://aerolocate:${POSTGRES_PASSWORD:?run python scripts/init_env.py first}@db:5432/aerolocate
+    AEROLOCATE_REDIS_URL: redis://redis:6379/0
+    AEROLOCATE_JOB_BACKEND: celery
+    AEROLOCATE_JWT_SECRET: ${AEROLOCATE_JWT_SECRET:?run python scripts/init_env.py first}
+  volumes:
+    - aerolocate-data:/data
+    - ./flight_datasets:/flight_datasets:ro
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: aerolocate
+      POSTGRES_USER: aerolocate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run python scripts/init_env.py first}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aerolocate -d aerolocate"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    <<: *backend
+
+  worker:
+    <<: *backend
+    command: ["celery", "-A", "backend.workers.celery_app.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
+    healthcheck:
+      disable: true
+
+  beat:
+    <<: *backend
+    command: ["celery", "-A", "backend.workers.celery_app.celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+    healthcheck:
+      disable: true
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        VITE_MAP_STYLE_URL: ${VITE_MAP_STYLE_URL:-https://tiles.openfreemap.org/styles/dark}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  aerolocate-data:
